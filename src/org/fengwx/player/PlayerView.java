@@ -11,13 +11,14 @@ import android.widget.RelativeLayout;
 
 import java.io.IOException;
 
-public final class PlayerView extends SurfaceView implements MediaPlayerControl {
+public final class PlayerView extends SurfaceView implements MediaPlayerControl, MediaPlayerScreen {
 
     private SurfaceHolder mSurfaceHolder = null;
     private MediaPlayer mMediaPlayer = null;
     private MediaPlayerCallback mMediaPlayerCallback = null;
     private String mPath;
     private int mW, mH;
+    private int mVideoW, mVideoH;
 
     public void setMediaPlayerCallback(MediaPlayerCallback mediaPlayerCallback) {
         mMediaPlayerCallback = mediaPlayerCallback;
@@ -71,26 +72,6 @@ public final class PlayerView extends SurfaceView implements MediaPlayerControl 
         }
     }
 
-    private void scale(int videoW, int videoH) {
-        log("scale 1 :videoW:" + videoW + ", videoH:" + videoH + ", w:" + mW + ", h:" + mH);
-
-        float wRatio = (float) videoW / (float) mW;
-        float hRatio = (float) videoH / (float) mH;
-
-        float ratio = Math.max(wRatio, hRatio);
-        videoW = (int) Math.ceil((float) videoW / ratio);
-        videoH = (int) Math.ceil((float) videoH / ratio);
-        log("scale 2 :wRatio:" + wRatio + ", hRatio:" + hRatio + ", ratio:" + ratio + ", videoW:" + videoW + ", videoH:" + videoH);
-
-        RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(videoW, videoH);
-        layoutParams.addRule(RelativeLayout.CENTER_IN_PARENT);
-        setLayoutParams(layoutParams);
-    }
-
-    private void full() {
-        setLayoutParams(new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT));
-    }
-
     private MediaPlayer.OnPreparedListener mPreparedListener = new MediaPlayer.OnPreparedListener() {
         @Override
         public void onPrepared(MediaPlayer mp) {
@@ -132,7 +113,10 @@ public final class PlayerView extends SurfaceView implements MediaPlayerControl 
     private MediaPlayer.OnVideoSizeChangedListener mVideoSizeChangedListener = new MediaPlayer.OnVideoSizeChangedListener() {
         @Override
         public void onVideoSizeChanged(MediaPlayer mp, int width, int height) {
-            scale(width, height);
+            mVideoW = width;
+            mVideoH = height;
+            log("width:" + width + ", height:" + height);
+            equal_ratio();
             if (null != mMediaPlayerCallback) {
                 mMediaPlayerCallback.onVideoSizeChanged(mp, width, height);
             }
@@ -277,6 +261,55 @@ public final class PlayerView extends SurfaceView implements MediaPlayerControl 
             mMediaPlayer.getVideoHeight();
         }
         return 0;
+    }
+
+    @Override
+    public void equal_ratio() {
+        if (mVideoW == 0 || mVideoH == 0) {
+            return;
+        }
+        float wRatio = (float) mVideoW / (float) mW;
+        float hRatio = (float) mVideoH / (float) mH;
+        float ratio = Math.max(wRatio, hRatio);
+        int w = (int) Math.ceil((float) mVideoW / ratio);
+        int h = (int) Math.ceil((float) mVideoH / ratio);
+        setLayoutParams(w, h);
+    }
+
+    @Override
+    public void full() {
+        setLayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT);
+    }
+
+    @Override
+    public void scale_4_3() {
+        scale((float) 4 / 3);
+    }
+
+    @Override
+    public void scale_16_9() {
+        scale((float) 16 / 9);
+    }
+
+    private final void scale(float r) {
+        if (mW == 0 || mH == 0) {
+            return;
+        }
+        float ratio = (float) mW / (float) mH;
+        int w = mW;
+        int h = mH;
+        if (ratio >= r) {
+            w = (int) (h * r);
+        } else if (ratio < r) {
+            h = (int) (w / r);
+        }
+        setLayoutParams(w, h);
+    }
+
+    private final void setLayoutParams(int w, int h) {
+        RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(w, h);
+        layoutParams.addRule(RelativeLayout.CENTER_IN_PARENT);
+        setLayoutParams(layoutParams);
     }
 
     private void log(String s) {
