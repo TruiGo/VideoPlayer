@@ -115,7 +115,6 @@ public final class PlayerView extends SurfaceView implements MediaPlayerControl,
         public void onVideoSizeChanged(MediaPlayer mp, int width, int height) {
             mVideoW = width;
             mVideoH = height;
-            log("width:" + width + ", height:" + height);
             equal_ratio();
             if (null != mMediaPlayerCallback) {
                 mMediaPlayerCallback.onVideoSizeChanged(mp, width, height);
@@ -166,15 +165,8 @@ public final class PlayerView extends SurfaceView implements MediaPlayerControl,
     @Override
     public void setVideoPath(String path) {
         log("setVideoPath:" + path);
-//        if (null != mMediaPlayer) {
-        try {
-            mPath = path;
-            initVideo();
-        } catch (Exception e) {
-            e.printStackTrace();
-            mPath = null;
-        }
-//        }
+        mPath = path;
+        initVideo();
     }
 
     @Override
