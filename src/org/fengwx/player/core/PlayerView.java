@@ -1,13 +1,29 @@
-package org.fengwx.player;
+/*
+ * Copyright (C) 2014 fengwx.cn@gmail.com
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.fengwx.player.core;
 
 import android.content.Context;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.widget.RelativeLayout;
+import org.fengwx.player.util.Logger;
 
 import java.io.IOException;
 
@@ -40,6 +56,7 @@ public final class PlayerView extends SurfaceView implements MediaPlayerControl,
     }
 
     private void init() {
+        Logger.d("player init");
         mW = getResources().getDisplayMetrics().widthPixels;
         mH = getResources().getDisplayMetrics().heightPixels;
         getHolder().addCallback(mSHCallback);
@@ -52,6 +69,7 @@ public final class PlayerView extends SurfaceView implements MediaPlayerControl,
         if (mPath == null || mSurfaceHolder == null) {
             return;
         }
+        Logger.d("player initVideo");
         release();
         try {
             mMediaPlayer = new MediaPlayer();
@@ -144,17 +162,17 @@ public final class PlayerView extends SurfaceView implements MediaPlayerControl,
     SurfaceHolder.Callback mSHCallback = new SurfaceHolder.Callback() {
         public void surfaceChanged(SurfaceHolder holder, int format,
                                    int w, int h) {
-            log("surfaceChanged");
+            Logger.d("surfaceChanged");
         }
 
         public void surfaceCreated(SurfaceHolder holder) {
-            log("surfaceCreated");
+            Logger.d("surfaceCreated");
             mSurfaceHolder = holder;
             initVideo();
         }
 
         public void surfaceDestroyed(SurfaceHolder holder) {
-            log("surfaceDestroyed");
+            Logger.d("surfaceDestroyed");
             if (mMediaPlayer != null) {
                 mMediaPlayer.release();
             }
@@ -164,7 +182,7 @@ public final class PlayerView extends SurfaceView implements MediaPlayerControl,
 
     @Override
     public void setVideoPath(String path) {
-        log("setVideoPath:" + path);
+        Logger.d("setVideoPath:" + path);
         mPath = path;
         initVideo();
     }
@@ -172,6 +190,7 @@ public final class PlayerView extends SurfaceView implements MediaPlayerControl,
     @Override
     public void start() {
         if (null != mMediaPlayer) {
+            Logger.d("start");
             mMediaPlayer.start();
         }
     }
@@ -179,6 +198,7 @@ public final class PlayerView extends SurfaceView implements MediaPlayerControl,
     @Override
     public void stop() {
         if (null != mMediaPlayer) {
+            Logger.d("stop");
             mMediaPlayer.stop();
             mMediaPlayer.release();
             mMediaPlayer = null;
@@ -188,6 +208,7 @@ public final class PlayerView extends SurfaceView implements MediaPlayerControl,
     @Override
     public void pause() {
         if (null != mMediaPlayer && mMediaPlayer.isPlaying()) {
+            Logger.d("pause");
             mMediaPlayer.pause();
         }
     }
@@ -195,6 +216,7 @@ public final class PlayerView extends SurfaceView implements MediaPlayerControl,
     @Override
     public void release() {
         if (null != mMediaPlayer) {
+            Logger.d("release");
             mMediaPlayer.reset();
             mMediaPlayer.release();
             mMediaPlayer = null;
@@ -204,6 +226,7 @@ public final class PlayerView extends SurfaceView implements MediaPlayerControl,
     @Override
     public void reset() {
         if (null != mMediaPlayer) {
+            Logger.d("reset");
             mMediaPlayer.reset();
         }
     }
@@ -211,6 +234,7 @@ public final class PlayerView extends SurfaceView implements MediaPlayerControl,
     @Override
     public boolean isPlaying() {
         if (null != mMediaPlayer) {
+            Logger.d("isPlaying:" + mMediaPlayer.isPlaying());
             return mMediaPlayer.isPlaying();
         }
         return false;
@@ -219,6 +243,7 @@ public final class PlayerView extends SurfaceView implements MediaPlayerControl,
     @Override
     public void seekTo(int msec) {
         if (null != mMediaPlayer) {
+            Logger.d("seekTo:" + msec);
             mMediaPlayer.seekTo(msec);
         }
     }
@@ -226,6 +251,7 @@ public final class PlayerView extends SurfaceView implements MediaPlayerControl,
     @Override
     public int getCurrentPosition() {
         if (null != mMediaPlayer) {
+            Logger.d("getCurrentPosition:" + mMediaPlayer.getCurrentPosition());
             return mMediaPlayer.getCurrentPosition();
         }
         return 0;
@@ -234,6 +260,7 @@ public final class PlayerView extends SurfaceView implements MediaPlayerControl,
     @Override
     public int getDuration() {
         if (null != mMediaPlayer) {
+            Logger.d("getDuration:" + mMediaPlayer.getDuration());
             return mMediaPlayer.getDuration();
         }
         return 0;
@@ -242,6 +269,7 @@ public final class PlayerView extends SurfaceView implements MediaPlayerControl,
     @Override
     public int getVideoWidth() {
         if (null != mMediaPlayer) {
+            Logger.d("getVideoWidth:" + mMediaPlayer.getVideoWidth());
             mMediaPlayer.getVideoWidth();
         }
         return 0;
@@ -250,6 +278,7 @@ public final class PlayerView extends SurfaceView implements MediaPlayerControl,
     @Override
     public int getVideoHeight() {
         if (null != mMediaPlayer) {
+            Logger.d("getVideoHeight:" + mMediaPlayer.getVideoHeight());
             mMediaPlayer.getVideoHeight();
         }
         return 0;
@@ -260,6 +289,7 @@ public final class PlayerView extends SurfaceView implements MediaPlayerControl,
         if (mVideoW == 0 || mVideoH == 0) {
             return;
         }
+        Logger.d("equal_ratio");
         float wRatio = (float) mVideoW / (float) mW;
         float hRatio = (float) mVideoH / (float) mH;
         float ratio = Math.max(wRatio, hRatio);
@@ -270,19 +300,27 @@ public final class PlayerView extends SurfaceView implements MediaPlayerControl,
 
     @Override
     public void full() {
+        Logger.d("full");
         setLayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT);
     }
 
     @Override
     public void scale_4_3() {
+        Logger.d("scale_4_3");
         scale((float) 4 / 3);
     }
 
     @Override
     public void scale_16_9() {
+        Logger.d("scale_16_9");
         scale((float) 16 / 9);
     }
 
+    /**
+     * Scale the size of the screen
+     *
+     * @param r
+     */
     private final void scale(float r) {
         if (mW == 0 || mH == 0) {
             return;
@@ -298,13 +336,16 @@ public final class PlayerView extends SurfaceView implements MediaPlayerControl,
         setLayoutParams(w, h);
     }
 
+    /**
+     * Set LayoutParams
+     *
+     * @param w
+     * @param h
+     */
     private final void setLayoutParams(int w, int h) {
         RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(w, h);
         layoutParams.addRule(RelativeLayout.CENTER_IN_PARENT);
         setLayoutParams(layoutParams);
     }
 
-    private void log(String s) {
-        Log.d("wenxuan", s);
-    }
 }
