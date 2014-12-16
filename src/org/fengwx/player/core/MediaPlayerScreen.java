@@ -26,7 +26,7 @@ public interface MediaPlayerScreen {
     /**
      * The proportion of the original video
      */
-    void equal_ratio();
+    void original();
 
     /**
      * Full screen

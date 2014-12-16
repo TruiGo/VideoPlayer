@@ -8,28 +8,5 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"/>
 
-    <LinearLayout
-            android:orientation="horizontal"
-            android:layout_alignParentBottom="true"
-            android:layout_width="match_parent"
-            android:layout_height="60dp">
-        <Button
-                android:text="btn1" android:layout_margin="5dp"
-                android:layout_weight="1"
-                android:layout_width="match_parent" android:layout_height="wrap_content" android:onClick="btn1"/>
-        <Button
-                android:layout_weight="1"
-                android:text="btn2" android:layout_margin="5dp"
-                android:layout_width="match_parent" android:layout_height="wrap_content" android:onClick="btn2"/>
-        <Button
-                android:layout_weight="1"
-                android:text="btn3" android:layout_margin="5dp"
-                android:layout_width="match_parent" android:layout_height="wrap_content" android:onClick="btn3"/>
-        <Button
-                android:layout_weight="1"
-                android:text="btn4" android:layout_margin="5dp"
-                android:layout_width="match_parent" android:layout_height="wrap_content" android:onClick="btn4"/>
-    </LinearLayout>
-
 </RelativeLayout>
 

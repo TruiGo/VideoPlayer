@@ -19,11 +19,18 @@ package org.fengwx.player.core;
 import android.content.Context;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
+import android.os.Handler;
+import android.os.Message;
 import android.util.AttributeSet;
+import android.view.Gravity;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.view.View;
+import android.widget.PopupWindow;
 import android.widget.RelativeLayout;
+import android.widget.SeekBar;
 import org.fengwx.player.util.Logger;
+import org.fengwx.player.util.MediaUtils;
 
 import java.io.IOException;
 
@@ -32,14 +39,43 @@ import java.io.IOException;
  *
  * @author fengwx
  */
-public final class PlayerView extends SurfaceView implements MediaPlayerControl, MediaPlayerScreen {
+public final class PlayerView extends SurfaceView implements MediaPlayerManager, MediaPlayerScreen {
+
+    private static final int AUTO_UPDATE_PROGRESS = 0x0100;
 
     private SurfaceHolder mSurfaceHolder = null;
     private MediaPlayer mMediaPlayer = null;
     private MediaPlayerCallback mMediaPlayerCallback = null;
+    private MediaControlBar mMediaControlBar = null;
     private String mPath;
     private int mW, mH;
     private int mVideoW, mVideoH;
+
+    private Handler mHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case AUTO_UPDATE_PROGRESS:
+                    if (mMediaPlayer == null || mMediaControlBar == null) {
+                        return;
+                    }
+                    if (isPlaying() && !mMediaControlBar.isSeekBarPressed()) {
+                        int position = getCurrentPosition();
+                        int duration = getDuration();
+                        if (duration > 0) {
+                            int progress = MediaUtils.getProgressPercentage(position, duration);
+                            Logger.d("wenxuan", "handler:progress:" + position);
+                            mMediaControlBar.setProgress(progress);
+                            mMediaControlBar.setStartText(MediaUtils.timeFormat(position));
+                            mMediaControlBar.setEndText(MediaUtils.timeFormat(duration));
+                        }
+                        removeMessages(AUTO_UPDATE_PROGRESS);
+                        sendEmptyMessageDelayed(AUTO_UPDATE_PROGRESS, 1000);
+                    }
+                    break;
+            }
+        }
+    };
 
     public void setMediaPlayerCallback(MediaPlayerCallback mediaPlayerCallback) {
         mMediaPlayerCallback = mediaPlayerCallback;
@@ -68,6 +104,7 @@ public final class PlayerView extends SurfaceView implements MediaPlayerControl,
         getHolder().setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
         setFocusable(false);
         setFocusableInTouchMode(false);
+        showMediaController();
     }
 
     private void initVideo() {
@@ -94,6 +131,47 @@ public final class PlayerView extends SurfaceView implements MediaPlayerControl,
             e.printStackTrace();
         }
     }
+
+    public void showMediaController() {
+        mMediaControlBar = new MediaControlBar(getContext());
+        mMediaControlBar.setOnSeekBarChangeListener(mOnSeekBarChangeListener);
+        final PopupWindow popupWindow = new PopupWindow();
+        popupWindow.setContentView(mMediaControlBar);
+        popupWindow.setFocusable(true);
+        post(new Runnable() {
+            @Override
+            public void run() {
+                popupWindow.setHeight(36);
+                popupWindow.setWidth(getMeasuredWidth());
+                popupWindow.showAtLocation((View) getParent(), Gravity.BOTTOM, 0, 0);
+                mHandler.sendEmptyMessageDelayed(AUTO_UPDATE_PROGRESS, 1000);
+            }
+        });
+    }
+
+    private SeekBar.OnSeekBarChangeListener mOnSeekBarChangeListener = new SeekBar.OnSeekBarChangeListener() {
+        @Override
+        public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+            Logger.e("wenxuan", "onProgressChanged:" + progress + ", fromUser:" + fromUser);
+        }
+
+        @Override
+        public void onStartTrackingTouch(SeekBar seekBar) {
+            Logger.e("wenxuan", "onStartTrackingTouch:");
+            mHandler.removeMessages(AUTO_UPDATE_PROGRESS);
+        }
+
+        @Override
+        public void onStopTrackingTouch(SeekBar seekBar) {
+            int progress = seekBar.getProgress();
+            Logger.e("wenxuan", "onStopTrackingTouch:" + progress);
+            if (mMediaPlayer != null && mMediaPlayer.isPlaying() && mMediaPlayer.getDuration() != 0) {
+                int seekTo = (int) (MediaUtils.div(progress, 100) * mMediaPlayer.getDuration());
+                Logger.d("wenxuan", "seekTo:" + seekTo);
+                mMediaPlayer.seekTo((int) (MediaUtils.div(progress, 100) * mMediaPlayer.getDuration()));
+            }
+        }
+    };
 
     private MediaPlayer.OnPreparedListener mPreparedListener = new MediaPlayer.OnPreparedListener() {
         @Override
@@ -138,7 +216,7 @@ public final class PlayerView extends SurfaceView implements MediaPlayerControl,
         public void onVideoSizeChanged(MediaPlayer mp, int width, int height) {
             mVideoW = width;
             mVideoH = height;
-            equal_ratio();
+            original();
             if (null != mMediaPlayerCallback) {
                 mMediaPlayerCallback.onVideoSizeChanged(mp, width, height);
             }
@@ -149,6 +227,9 @@ public final class PlayerView extends SurfaceView implements MediaPlayerControl,
         @Override
         public void onBufferingUpdate(MediaPlayer mp, int percent) {
             if (null != mMediaPlayerCallback) {
+                if (null != mMediaControlBar) {
+                    mMediaControlBar.setSecondaryProgress(percent);
+                }
                 mMediaPlayerCallback.onBufferingUpdate(mp, percent);
             }
         }
@@ -158,13 +239,16 @@ public final class PlayerView extends SurfaceView implements MediaPlayerControl,
         @Override
         public void onSeekComplete(MediaPlayer mp) {
             if (null != mMediaPlayerCallback) {
+                Logger.d("wenxuan", "onSeekComplete:" + getCurrentPosition());
+                mHandler.removeMessages(AUTO_UPDATE_PROGRESS);
+                mHandler.sendEmptyMessageDelayed(AUTO_UPDATE_PROGRESS, 1000);
                 mMediaPlayerCallback.onSeekComplete(mp);
             }
         }
     };
 
 
-    SurfaceHolder.Callback mSHCallback = new SurfaceHolder.Callback() {
+    private SurfaceHolder.Callback mSHCallback = new SurfaceHolder.Callback() {
         public void surfaceChanged(SurfaceHolder holder, int format,
                                    int w, int h) {
             Logger.d("surfaceChanged");
@@ -290,11 +374,11 @@ public final class PlayerView extends SurfaceView implements MediaPlayerControl,
     }
 
     @Override
-    public void equal_ratio() {
+    public void original() {
         if (mVideoW == 0 || mVideoH == 0) {
             return;
         }
-        Logger.d("equal_ratio");
+        Logger.d("original screen");
         float wRatio = (float) mVideoW / (float) mW;
         float hRatio = (float) mVideoH / (float) mH;
         float ratio = Math.max(wRatio, hRatio);
@@ -305,19 +389,19 @@ public final class PlayerView extends SurfaceView implements MediaPlayerControl,
 
     @Override
     public void full() {
-        Logger.d("full");
+        Logger.d("full screen");
         setLayoutParams(RelativeLayout.LayoutParams.MATCH_PARENT, RelativeLayout.LayoutParams.MATCH_PARENT);
     }
 
     @Override
     public void scale_4_3() {
-        Logger.d("scale_4_3");
+        Logger.d("4:3 screen");
         scale((float) 4 / 3);
     }
 
     @Override
     public void scale_16_9() {
-        Logger.d("scale_16_9");
+        Logger.d("16:9 screen");
         scale((float) 16 / 9);
     }
 

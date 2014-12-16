@@ -17,11 +17,11 @@
 package org.fengwx.player.core;
 
 /**
- * Interface definition of control the player
+ * Interface definition of manage the player
  *
  * @author fengwx
  */
-public interface MediaPlayerControl {
+public interface MediaPlayerManager {
 
     /**
      * Sets the data source path
