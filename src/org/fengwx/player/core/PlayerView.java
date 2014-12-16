@@ -27,6 +27,11 @@ import org.fengwx.player.util.Logger;
 
 import java.io.IOException;
 
+/**
+ * The core class of player
+ *
+ * @author fengwx
+ */
 public final class PlayerView extends SurfaceView implements MediaPlayerControl, MediaPlayerScreen {
 
     private SurfaceHolder mSurfaceHolder = null;

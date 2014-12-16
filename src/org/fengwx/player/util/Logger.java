@@ -19,8 +19,9 @@ package org.fengwx.player.util;
 import android.util.Log;
 
 /**
- * Author: fengwx
- * Date: 14-12-16
+ * Log
+ *
+ * @author fengwx
  */
 public class Logger {
 
