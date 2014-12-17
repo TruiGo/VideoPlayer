@@ -37,6 +37,12 @@ public class MediaUtils {
         return b1.divide(b2, DEFAULT_DIV_SCALE, BigDecimal.ROUND_HALF_UP).doubleValue();
     }
 
+    /**
+     * Time format (00:00/00:00)
+     *
+     * @param timeMs
+     * @return
+     */
     public static String timeFormat(int timeMs) {
         int totalSeconds = timeMs / 1000;
 
@@ -53,6 +59,13 @@ public class MediaUtils {
         }
     }
 
+    /**
+     * Get progress percent by curposition and duration
+     *
+     * @param currentDuration
+     * @param totalDuration
+     * @return
+     */
     public static int getProgressPercentage(long currentDuration, long totalDuration) {
         Double percentage = 0D;
 

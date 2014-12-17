@@ -17,6 +17,8 @@
 package org.fengwx.player.core;
 
 import android.content.Context;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.os.Handler;
@@ -47,6 +49,7 @@ public final class PlayerView extends SurfaceView implements MediaPlayerManager,
     private MediaPlayer mMediaPlayer = null;
     private MediaPlayerCallback mMediaPlayerCallback = null;
     private MediaControlBar mMediaControlBar = null;
+    private PopupWindow mPopupWindow = null;
     private String mPath;
     private int mW, mH;
     private int mVideoW, mVideoH;
@@ -64,7 +67,6 @@ public final class PlayerView extends SurfaceView implements MediaPlayerManager,
                         int duration = getDuration();
                         if (duration > 0) {
                             int progress = MediaUtils.getProgressPercentage(position, duration);
-                            Logger.d("wenxuan", "handler:progress:" + position);
                             mMediaControlBar.setProgress(progress);
                             mMediaControlBar.setStartText(MediaUtils.timeFormat(position));
                             mMediaControlBar.setEndText(MediaUtils.timeFormat(duration));
@@ -76,10 +78,6 @@ public final class PlayerView extends SurfaceView implements MediaPlayerManager,
             }
         }
     };
-
-    public void setMediaPlayerCallback(MediaPlayerCallback mediaPlayerCallback) {
-        mMediaPlayerCallback = mediaPlayerCallback;
-    }
 
     public PlayerView(Context context) {
         super(context);
@@ -104,7 +102,10 @@ public final class PlayerView extends SurfaceView implements MediaPlayerManager,
         getHolder().setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
         setFocusable(false);
         setFocusableInTouchMode(false);
-        showMediaController();
+        mPopupWindow = new PopupWindow();
+        mPopupWindow.setFocusable(true);
+        mPopupWindow.setOutsideTouchable(true);
+        mPopupWindow.setBackgroundDrawable(new ColorDrawable(Color.argb(60, 200, 200, 200)));
     }
 
     private void initVideo() {
@@ -132,46 +133,14 @@ public final class PlayerView extends SurfaceView implements MediaPlayerManager,
         }
     }
 
-    public void showMediaController() {
-        mMediaControlBar = new MediaControlBar(getContext());
-        mMediaControlBar.setOnSeekBarChangeListener(mOnSeekBarChangeListener);
-        final PopupWindow popupWindow = new PopupWindow();
-        popupWindow.setContentView(mMediaControlBar);
-        popupWindow.setFocusable(true);
-        post(new Runnable() {
-            @Override
-            public void run() {
-                popupWindow.setHeight(36);
-                popupWindow.setWidth(getMeasuredWidth());
-                popupWindow.showAtLocation((View) getParent(), Gravity.BOTTOM, 0, 0);
-                mHandler.sendEmptyMessageDelayed(AUTO_UPDATE_PROGRESS, 1000);
-            }
-        });
+    /**
+     * Register a callback to be invoked
+     *
+     * @param mediaPlayerCallback
+     */
+    public void setMediaPlayerCallback(MediaPlayerCallback mediaPlayerCallback) {
+        mMediaPlayerCallback = mediaPlayerCallback;
     }
-
-    private SeekBar.OnSeekBarChangeListener mOnSeekBarChangeListener = new SeekBar.OnSeekBarChangeListener() {
-        @Override
-        public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-            Logger.e("wenxuan", "onProgressChanged:" + progress + ", fromUser:" + fromUser);
-        }
-
-        @Override
-        public void onStartTrackingTouch(SeekBar seekBar) {
-            Logger.e("wenxuan", "onStartTrackingTouch:");
-            mHandler.removeMessages(AUTO_UPDATE_PROGRESS);
-        }
-
-        @Override
-        public void onStopTrackingTouch(SeekBar seekBar) {
-            int progress = seekBar.getProgress();
-            Logger.e("wenxuan", "onStopTrackingTouch:" + progress);
-            if (mMediaPlayer != null && mMediaPlayer.isPlaying() && mMediaPlayer.getDuration() != 0) {
-                int seekTo = (int) (MediaUtils.div(progress, 100) * mMediaPlayer.getDuration());
-                Logger.d("wenxuan", "seekTo:" + seekTo);
-                mMediaPlayer.seekTo((int) (MediaUtils.div(progress, 100) * mMediaPlayer.getDuration()));
-            }
-        }
-    };
 
     private MediaPlayer.OnPreparedListener mPreparedListener = new MediaPlayer.OnPreparedListener() {
         @Override
@@ -239,14 +208,12 @@ public final class PlayerView extends SurfaceView implements MediaPlayerManager,
         @Override
         public void onSeekComplete(MediaPlayer mp) {
             if (null != mMediaPlayerCallback) {
-                Logger.d("wenxuan", "onSeekComplete:" + getCurrentPosition());
                 mHandler.removeMessages(AUTO_UPDATE_PROGRESS);
                 mHandler.sendEmptyMessageDelayed(AUTO_UPDATE_PROGRESS, 1000);
                 mMediaPlayerCallback.onSeekComplete(mp);
             }
         }
     };
-
 
     private SurfaceHolder.Callback mSHCallback = new SurfaceHolder.Callback() {
         public void surfaceChanged(SurfaceHolder holder, int format,
@@ -265,9 +232,12 @@ public final class PlayerView extends SurfaceView implements MediaPlayerManager,
             if (mMediaPlayer != null) {
                 mMediaPlayer.release();
             }
+            if (mMediaControlBar != null) {
+                mMediaControlBar = null;
+            }
+            mHandler.removeCallbacksAndMessages(null);
         }
     };
-
 
     @Override
     public void setVideoPath(String path) {
@@ -436,5 +406,112 @@ public final class PlayerView extends SurfaceView implements MediaPlayerManager,
         layoutParams.addRule(RelativeLayout.CENTER_IN_PARENT);
         setLayoutParams(layoutParams);
     }
+
+    /**
+     * Show default MediaController
+     */
+    public void showMediaController() {
+        mMediaControlBar = new MediaControlBar(getContext());
+        mMediaControlBar.setOnSeekBarChangeListener(mOnSeekBarChangeListener);
+        mPopupWindow.setContentView(mMediaControlBar);
+        post(new Runnable() {
+            @Override
+            public void run() {
+                mPopupWindow.setHeight(36);
+                mPopupWindow.setWidth(getMeasuredWidth());
+                mPopupWindow.showAtLocation((View) getParent(), Gravity.BOTTOM, 0, 0);
+                mHandler.sendEmptyMessageDelayed(AUTO_UPDATE_PROGRESS, 1000);
+            }
+        });
+    }
+
+    /**
+     * Show MediaController
+     *
+     * @param view
+     * @param width
+     * @param height
+     */
+    public void showMediaController(View view, int width, int height) {
+        showMediaController(view, width, height, Gravity.BOTTOM);
+    }
+
+    /**
+     * Show MediaController
+     *
+     * @param view
+     * @param width
+     * @param height
+     * @param gravity
+     */
+    public void showMediaController(View view, int width, int height, final int gravity) {
+        showMediaController(view, width, height, gravity, 0, 0);
+    }
+
+    /**
+     * Show MediaController
+     *
+     * @param view
+     * @param width
+     * @param height
+     * @param gravity
+     * @param x
+     * @param y
+     */
+    public void showMediaController(View view, final int width, final int height, final int gravity, final int x, final int y) {
+        mPopupWindow.setContentView(view);
+        post(new Runnable() {
+            @Override
+            public void run() {
+                mPopupWindow.setHeight(height);
+                mPopupWindow.setWidth(width);
+                mPopupWindow.showAtLocation((View) getParent(), gravity, x, y);
+            }
+        });
+    }
+
+    /**
+     * Hide MediaController
+     */
+    public void hideMediaController() {
+        if (mMediaControlBar != null) {
+            mMediaControlBar = null;
+        }
+        mHandler.removeCallbacksAndMessages(null);
+        mPopupWindow.dismiss();
+    }
+
+    /**
+     * Judge whether the MediaController is shown
+     *
+     * @return
+     */
+    public boolean isMediaControllerShown() {
+        return mPopupWindow != null && mPopupWindow.isShowing();
+    }
+
+    private SeekBar.OnSeekBarChangeListener mOnSeekBarChangeListener = new SeekBar.OnSeekBarChangeListener() {
+        @Override
+        public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+            Logger.e("onProgressChanged:" + progress + ", fromUser:" + fromUser);
+        }
+
+        @Override
+        public void onStartTrackingTouch(SeekBar seekBar) {
+            Logger.e("onStartTrackingTouch:");
+            mHandler.removeMessages(AUTO_UPDATE_PROGRESS);
+        }
+
+        @Override
+        public void onStopTrackingTouch(SeekBar seekBar) {
+            int progress = seekBar.getProgress();
+            Logger.e("onStopTrackingTouch:" + progress);
+            if (mMediaPlayer != null && mMediaPlayer.isPlaying() && mMediaPlayer.getDuration() != 0) {
+                int msec = (int) (MediaUtils.div(progress, 100) * mMediaPlayer.getDuration());
+                Logger.d("touch seekTo:" + msec);
+                mMediaPlayer.seekTo(msec);
+            }
+        }
+    };
 
 }

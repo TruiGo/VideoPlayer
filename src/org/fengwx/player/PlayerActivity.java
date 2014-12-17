@@ -19,11 +19,11 @@ package org.fengwx.player;
 import android.app.Activity;
 import android.media.MediaPlayer;
 import android.os.Bundle;
+import android.view.KeyEvent;
 import android.widget.MediaController;
 import org.fengwx.player.core.MediaPlayerCallback;
 import org.fengwx.player.core.PlayerView;
 import org.fengwx.player.core.SimplePlayerCallback;
-import org.fengwx.player.util.Logger;
 
 /**
  * Test Player Activity
@@ -32,7 +32,6 @@ import org.fengwx.player.util.Logger;
  */
 public class PlayerActivity extends Activity {
 
-    //    private final static String url = "http://112.25.63.133/gitv_live/CCTV-2/CCTV-2.m3u8?p=CMNET_JIANGSU";
     private final static String url = "http://pl.youku.com/playlist/m3u8?did=838637d7afb0e0461f19a0dfaf3e00859b191c48&ts=1414723781&ctype=65&token=2367&keyframe=1&sid=241472378118665c8f260&ev=1&type=mp4&oip=2090890182&vid=XNzU4NzU3NzA0&ep=RKtAH4IYFImLpUVE0EyJY7AUHdbwibd6msFUjIfP6TgdjHxCQdKRRNbQ6zbXKXaw";
 
     private PlayerView mPlayerView;
@@ -52,20 +51,29 @@ public class PlayerActivity extends Activity {
     private MediaPlayerCallback mediaPlayerCallback = new SimplePlayerCallback() {
         @Override
         public boolean onError(MediaPlayer mp, int what, int extra) {
-            Logger.e("onError: " + what + "  " + extra);
             return false;
         }
 
         @Override
         public void onCompletion(MediaPlayer mp) {
-            Logger.d("onCompletion");
         }
 
         @Override
         public void onPrepared(MediaPlayer mp) {
-            Logger.d("onPrepared");
             mPlayerView.start();
         }
     };
 
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_MENU) {
+            if (mPlayerView.isMediaControllerShown()) {
+                mPlayerView.hideMediaController();
+            } else {
+                mPlayerView.showMediaController();
+            }
+            return true;
+        }
+        return super.onKeyDown(keyCode, event);
+    }
 }
